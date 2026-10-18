@@ -1,10 +1,10 @@
 # no hunch club
 
-Desk posture and blinks for one device id. The computer counts blinks. The board scores how you're sitting, and the site shows the record.
+Got a hunch your computer work habits are impacting your livelihood? Guess no longer with No Hunch Club! Preventative care for people who work extensively on computers (aka everyone).
 
-Two parts live in this repo.
+Two parts live in this repo:
 
-- **Perch** (Next.js) opens on a device id. `/device/[deviceId]` shows only that device's posture: percent upright, good and bad posture, and the most common problem. The same screen turns footage collection on and off. There is no camera preview.
+- **Perch** (Next.js) opens based on what device is plugged in. `/device/[deviceId]` shows only that device's posture: percent upright, good and bad posture, and the most common problem. The same screen turns footage collection on and off.
 - **Posture API** stores numeric posture rows in Tiger Data. The static dashboard is `index.html` at the repo root, branded no hunch club, and published to nohunch.club. Instructions follow the Perch section.
 
 ## Layout
@@ -37,18 +37,17 @@ npm run dev
 
 Open [http://localhost:43123](http://localhost:43123) in Chrome or Edge. Pull the latest `main` first if you already have a checkout.
 
-1. The first page asks for a device id and opens the chart for that id. Use the id compiled into the ESP32.
-2. Open a device id. **Not collecting footage** turns the webcam on and connects the ESP32. The button then reads **Collecting footage**. The page does not show the camera. Pick the board's USB serial port the first time. Chrome or Edge is required. The same button is on https://nohunch.club.
-3. A 5-second stare buzzes on the board. Under 20 blinks in a minute buzzes again. Three posture scores of 60 or below buzz a different pattern. A 20-minute stretch starts a 20-second break buzz.
+1. Start the camera and connect with a device id. **Start Camera** turns the webcam on and connects the ESP32. The button then reads **Stop Camera**. The page does not show the camera. Pick the board's USB serial port the first time. Chrome or Edge is required. The same button is on https://nohunch.club.
+2. A 5-second stare buzzes on the board. Under 20 blinks in a minute buzzes again. Three posture scores of 60 or below buzz a different pattern. A 20-minute stretch starts a 20-second break buzz.
 
 `npm test` checks the blink clock, the USB frame packet, and the posture event mapping.
 
 ## ESP32
 
-The firmware lives at `esp32/perch_esp32/perch_esp32.ino`. On GitHub that folder is in [tiredwren/dubhacks2026](https://github.com/tiredwren/dubhacks2026).
+The firmware lives at `esp32/perch_esp32/perch_esp32.ino`.
 
 1. Install Arduino IDE 2 and, in Boards Manager, the **esp32** package by Espressif.
-2. **File → Open** and choose `esp32/perch_esp32/perch_esp32.ino`. The IDE loads `jpeg_gray` and `perch_alerts` from that same folder. Leave `esp32/tests/` alone. Those files are host checks, not part of the sketch.
+2. **File >> Open** and choose `esp32/perch_esp32/perch_esp32.ino`. The IDE loads `jpeg_gray` and `perch_alerts` from that same folder. Leave `esp32/tests/` alone. Those files are host checks, not part of the sketch.
 3. Copy `secrets.example.h` to `secrets.h` in that folder. Fill in Wi-Fi, a device id (letters, numbers, hyphens, or underscores), and the Perceptron key. `secrets.h` is gitignored. Do not commit it.
 4. Board **ESP32S3 Dev Module**, **USB CDC On Boot: Enabled**, **PSRAM: OPI PSRAM**. If the serial log says the PSRAM id could not be read, switch that menu to **QSPI PSRAM** and upload again. Native USB ignores baud. The website opens the port at 921600.
 5. Wiring is fixed: active buzzer on GPIO 4 (HIGH beeps), green/yellow/red LEDs on GPIO 5/6/7, button on GPIO 15 to GND, LCD RS/E/D4–D7 on GPIO 8–13. Leave GPIO 3 and GPIO 46 empty.
