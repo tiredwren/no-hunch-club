@@ -1,0 +1,1533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="no hunch club. Posture and blinks for one device id." />
+  <meta name="theme-color" content="#f3f3f1" />
+  <title>no hunch club</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%231b1b1b'/%3E%3C/svg%3E" />
+  <script>
+    // Live API origin. No trailing slash.
+    const API_BASE = "https://posture-api-x1my.onrender.com";
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f3f3f1;
+      --ink: #1b1b1b;
+      --muted: #5c5c58;
+      --card: #ffffff;
+      --line: #d5d5d1;
+      --forest: #1b1b1b;
+      --forest-deep: #000000;
+      --paper: #f7f7f5;
+      --good: #1d6b3a;
+      --bad: #a33b24;
+      --soft: #efefec;
+      --focus: #1b1b1b;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font: 16px/1.45 ui-sans-serif, system-ui, sans-serif;
+    }
+    .skip-link {
+      position: absolute;
+      left: 1rem;
+      top: 1rem;
+      transform: translateY(-200%);
+      background: var(--forest);
+      color: var(--paper);
+      padding: 0.5rem 0.9rem;
+      border-radius: 2px;
+      font-weight: 700;
+      z-index: 5;
+    }
+    .skip-link:focus { transform: none; }
+    main {
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 28px 20px 64px;
+    }
+    .site-header { max-width: 40rem; }
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-mark { width: 40px; height: 40px; flex: none; }
+    .brand-name {
+      margin: 0;
+      font-family: inherit;
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      line-height: 1.2;
+    }
+    h1 {
+      margin: 18px 0 0;
+      font-family: inherit;
+      font-size: clamp(1.7rem, 4vw, 2.2rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+    }
+    .lede {
+      margin: 14px 0 0;
+      max-width: 38rem;
+      color: var(--muted);
+      font-size: 1.12rem;
+    }
+    .device-controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: end;
+      gap: 12px;
+      margin: 28px 0 18px;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      min-width: 9rem;
+      color: var(--ink);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+    select, button {
+      font: inherit;
+      color: var(--ink);
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 10px 12px;
+      min-height: 46px;
+    }
+    select { min-width: 9.5rem; }
+    button {
+      cursor: pointer;
+      background: var(--forest);
+      color: var(--paper);
+      border-color: var(--forest);
+      font-weight: 700;
+      padding-inline: 16px;
+    }
+    button:hover { background: var(--forest-deep); }
+    select:focus-visible,
+    button:focus-visible,
+    .skip-link:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 3px;
+    }
+    .summary-stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin: 12px 0;
+    }
+    .summary-stats article, .chart-panel {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 18px 18px 16px;
+      box-shadow: none;
+    }
+    .summary-stats h2, .chart-panel h2 {
+      margin: 0;
+      color: var(--muted);
+      font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: 0;
+    }
+    .chart-panel h2 {
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 1.7rem;
+      letter-spacing: -0.03em;
+    }
+    .summary-stats p {
+      margin: 10px 0 0;
+      font-family: inherit;
+      font-size: 2.4rem;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    #percent.is-good { color: var(--good); }
+    #percent.is-bad { color: var(--bad); }
+    #bad-label { font-size: 1.7rem; }
+    #samples { font-size: 1.55rem; }
+    #samples .good { color: var(--good); }
+    #samples .bad { color: var(--bad); }
+    .chart-heading p { margin: 6px 0 0; color: var(--muted); }
+    .reminder {
+      margin: 16px 0 0;
+      font-family: inherit;
+      font-size: 2.4rem;
+      font-weight: 560;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    .reminder.is-good { color: var(--good); }
+    .reminder.is-bad { color: var(--bad); }
+    .chart-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 14px;
+    }
+    .chart-sub {
+      margin: 0;
+      font-family: inherit;
+      font-size: 1.35rem;
+      font-weight: 560;
+      letter-spacing: -0.03em;
+    }
+    .chart-frame {
+      position: relative;
+      height: 280px;
+      margin-top: 8px;
+    }
+    .chart-message {
+      display: none;
+      position: absolute;
+      inset: 0;
+      place-items: center;
+      align-content: center;
+      margin: 0;
+      padding: 24px;
+      border-radius: 4px;
+      background: var(--soft);
+      color: var(--ink);
+      text-align: left;
+    }
+    .chart-message strong {
+      display: block;
+      font-family: inherit;
+      font-size: 1.6rem;
+      font-weight: 560;
+      letter-spacing: -0.03em;
+    }
+    .chart-message span {
+      display: block;
+      margin-top: 6px;
+      max-width: 28rem;
+      color: var(--muted);
+    }
+    .chart-frame.is-empty canvas,
+    .chart-frame.is-loading canvas { visibility: hidden; }
+    .chart-frame.is-empty .chart-message.is-empty,
+    .chart-frame.is-loading .chart-message.is-loading { display: grid; }
+    #status {
+      min-height: 1.4em;
+      margin: 14px 0 0;
+      color: var(--muted);
+    }
+    #status.is-error { color: var(--bad); font-weight: 700; }
+    #footage[aria-pressed="false"] {
+      background: var(--card);
+      color: var(--forest);
+    }
+    #footage-error {
+      flex-basis: 100%;
+      margin: 0;
+      color: var(--bad);
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+    .footnote {
+      margin: 22px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .chart-panel { margin-bottom: 12px; }
+    .points-head {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px 16px;
+      margin-bottom: 12px;
+    }
+    .points-head h2 {
+      margin: 0;
+      color: var(--ink);
+      font-family: inherit;
+      font-size: 1.7rem;
+      letter-spacing: -0.03em;
+    }
+    .points-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .blink-stats .points-grid { grid-template-columns: repeat(2, 1fr); }
+    .points-grid article {
+      background: var(--soft);
+      border-radius: 4px;
+      padding: 14px 14px 12px;
+    }
+    .points-grid h3 {
+      margin: 0;
+      color: var(--muted);
+      font-family: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .points-stat {
+      margin: 8px 0 0;
+      font-family: inherit;
+      font-size: 1.7rem;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+    }
+    .points-meta { margin: 6px 0 0; color: var(--muted); font-size: 0.92rem; }
+    .level-track {
+      height: 8px;
+      margin-top: 10px;
+      overflow: hidden;
+      border-radius: 2px;
+      background: var(--line);
+    }
+    .level-track span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: var(--forest);
+    }
+    .board {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 12px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+    .board li {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr) auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 4px;
+      background: var(--soft);
+    }
+    .board .rank {
+      display: grid;
+      place-items: center;
+      width: 2rem;
+      height: 2rem;
+      border-radius: 4px;
+      background: var(--forest);
+      color: var(--paper);
+      font-weight: 700;
+    }
+    .board .name { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .board .pts { font-family: inherit; font-size: 1.25rem; }
+    #points-status.is-error, #board-status.is-error { color: var(--bad); font-weight: 700; }
+    @media (max-width: 720px) {
+      main { padding: 20px 16px 48px; }
+      .summary-stats, .points-grid, .blink-stats .points-grid { grid-template-columns: 1fr; }
+      .summary-stats p { font-size: 2rem; }
+      .device-controls { align-items: stretch; }
+      label, select, button { width: 100%; }
+      .chart-row { grid-template-columns: 1fr; }
+      .chart-frame { height: 240px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+    }
+  </style>
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <main id="content">
+    <header class="site-header">
+      <p class="brand-name">no hunch club</p>
+      <h1>Posture and blinks</h1>
+      <p class="lede">
+        One device id. This computer counts blinks. The board scores how you're sitting.
+      </p>
+    </header>
+    <div class="device-controls">
+      <label for="device-id">Device id
+        <select id="device-id">
+          <option value="user_1">user_1</option>
+          <option value="user_2">user_2</option>
+        </select>
+      </label>
+      <button id="refresh" type="button">Refresh</button>
+      <button id="footage" type="button" aria-pressed="false">Start camera</button>
+      <p id="footage-error" hidden></p>
+    </div>
+    <section class="points-card chart-panel" aria-label="Points">
+      <div class="points-head">
+        <h2>Points</h2>
+        <p id="points-status" role="status">Loading points…</p>
+      </div>
+      <div class="points-grid">
+        <article>
+          <h3>Level</h3>
+          <p id="level-title" class="points-stat">—</p>
+          <p id="level-meta" class="points-meta">Last 7 days</p>
+          <div id="level-track" class="level-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" aria-label="Level progress">
+            <span id="level-fill"></span>
+          </div>
+        </article>
+        <article>
+          <h3>Today</h3>
+          <p id="goal-stat" class="points-stat">—</p>
+          <p id="goal-meta" class="points-meta">Upright minutes toward 60</p>
+        </article>
+        <article>
+          <h3>Streak</h3>
+          <p id="streak-stat" class="points-stat">—</p>
+          <p id="streak-meta" class="points-meta">Flow multiplier and day streak</p>
+        </article>
+      </div>
+    </section>
+    <section class="chart-panel" aria-labelledby="chart-title">
+      <div class="chart-heading">
+        <h2 id="chart-title">Live scores</h2>
+        <p>Last 10 minutes. Posture is the board. Blinks are counted on this computer.</p>
+        <p id="reminder" class="reminder" role="status">Waiting for a score.</p>
+      </div>
+      <div class="chart-row">
+        <div>
+          <h3 class="chart-sub">Posture</h3>
+          <div class="chart-frame" id="chart-frame">
+            <canvas id="chart" aria-label="Posture score from 1 to 100"></canvas>
+            <p id="loading-chart" class="chart-message is-loading" role="status">
+              <strong>Loading posture</strong>
+              <span>Fetching scores for this device id.</span>
+            </p>
+            <p id="empty-chart" class="chart-message is-empty">
+              <strong>No readings yet</strong>
+              <span>No score for this device id in the last 10 minutes.</span>
+            </p>
+          </div>
+        </div>
+        <div>
+          <h3 class="chart-sub">Blinks</h3>
+          <div class="chart-frame" id="blink-frame">
+            <canvas id="blink-chart" aria-label="Seconds since the last blink"></canvas>
+            <p id="loading-blinks" class="chart-message is-loading" role="status">
+              <strong>Loading blinks</strong>
+              <span>Fetching scores for this device id.</span>
+            </p>
+            <p id="empty-blinks" class="chart-message is-empty">
+              <strong>No blink times yet</strong>
+              <span>Blink times are saved with each new score. Older points only have posture.</span>
+            </p>
+          </div>
+        </div>
+      </div>
+      <p id="status" role="status"></p>
+    </section>
+    <section class="summary-stats" aria-label="Posture summary">
+      <article>
+        <h2>Percent upright</h2>
+        <p id="percent">—</p>
+      </article>
+      <article>
+        <h2>Most common problem</h2>
+        <p id="bad-label">—</p>
+      </article>
+      <article>
+        <h2>Good and bad samples</h2>
+        <p id="samples">—</p>
+      </article>
+    </section>
+    <section class="points-card chart-panel blink-stats" aria-label="Blinks">
+      <div class="points-head">
+        <h2>Blinks</h2>
+        <p>The timer resets when your eyes open. Over 5 seconds is the fast beep.</p>
+      </div>
+      <div class="points-grid">
+        <article>
+          <h3>Since last blink</h3>
+          <p id="blink-gap" class="points-stat">—</p>
+          <p class="points-meta">Over 5 seconds is the fast beep</p>
+        </article>
+        <article>
+          <h3>Blinks this minute</h3>
+          <p id="blink-rate" class="points-stat">—</p>
+          <p class="points-meta">From the latest sheet</p>
+        </article>
+      </div>
+    </section>
+    <section class="chart-panel" aria-labelledby="board-title">
+      <div class="chart-heading">
+        <h2 id="board-title">Leaderboard</h2>
+        <p>Points over the last 7 days. The name is the display name, or the device id when none is stored.</p>
+      </div>
+      <ol id="leaderboard" class="board"></ol>
+      <p id="board-status" role="status"></p>
+    </section>
+    <p class="footnote">no hunch club. One device id at a time.</p>
+  </main>
+  <script>
+    const apiBase = API_BASE.replace(/\/$/, "");
+    const deviceSelect = document.querySelector("#device-id");
+    function boardError(text) {
+      if (text === "wifi") {
+        return "The ESP32 is not on Wi-Fi. Check the network name in secrets.h. An open network needs an empty password, and the network has to be 2.4 GHz.";
+      }
+      if (text === "wifi has no internet") {
+        return "The ESP32 joined Wi-Fi, but that network has no internet. Perceptron cannot be reached. Use a 2.4 GHz network that opens normal websites, with no login page.";
+      }
+      if (text === "could not reach Perceptron" || text.indexOf("perceptron -") === 0) {
+        return "The ESP32 could not open a connection to Perceptron, so nothing was saved. Upload the latest sketch. Use a 2.4 GHz network with internet and no login page.";
+      }
+      if (text === "parse") {
+        return "Perceptron answered, but the score was not readable. Upload the latest sketch, then try again.";
+      }
+      if (text.indexOf("parse ") === 0) {
+        return "Perceptron answered, but the score was cut off or was not the score JSON. Reply: " + text.slice(6);
+      }
+      return text;
+    }
+    const statusEl = document.querySelector("#status");
+    const chartFrame = document.querySelector("#chart-frame");
+    const blinkFrame = document.querySelector("#blink-frame");
+    const chartCanvas = document.querySelector("#chart");
+    const blinkCanvas = document.querySelector("#blink-chart");
+    let chart = null;
+    let blinkChart = null;
+
+    const chartFont = 'ui-sans-serif, system-ui, sans-serif';
+    if (typeof Chart !== "undefined") {
+      Chart.defaults.font.family = chartFont;
+      Chart.defaults.color = "#3f4a44";
+    }
+
+    function formatPostureLabel(label) {
+      return label.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
+    }
+
+    function formatBucket(iso, hours) {
+      const date = new Date(iso);
+      if (Number(hours) > 12) {
+        return date.toLocaleString([], { month: "short", day: "numeric", hour: "numeric" });
+      }
+      return date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" });
+    }
+
+    function setFrameMode(frame, mode) {
+      frame.classList.toggle("is-loading", mode === "loading");
+      frame.classList.toggle("is-empty", mode === "empty");
+    }
+
+    function setChartMode(mode) {
+      setFrameMode(chartFrame, mode);
+      setFrameMode(blinkFrame, mode);
+    }
+
+    function renderSummary(summary) {
+      const percentEl = document.querySelector("#percent");
+      const percent = summary.percent_good;
+      percentEl.textContent =
+        percent === null || percent === undefined ? "—" : percent + "%";
+      percentEl.classList.toggle("is-good", typeof percent === "number" && percent >= 50);
+      percentEl.classList.toggle("is-bad", typeof percent === "number" && percent < 50);
+      document.querySelector("#bad-label").textContent = summary.most_common_bad_label
+        ? formatPostureLabel(summary.most_common_bad_label)
+        : "None";
+      const samplesEl = document.querySelector("#samples");
+      const goodEl = document.createElement("span");
+      const badEl = document.createElement("span");
+      goodEl.className = "good";
+      goodEl.textContent = String(summary.good_samples);
+      badEl.className = "bad";
+      badEl.textContent = String(summary.bad_samples);
+      samplesEl.replaceChildren(goodEl, " good · ", badEl, " bad");
+    }
+
+    function clearSummary() {
+      const percentEl = document.querySelector("#percent");
+      percentEl.textContent = "—";
+      percentEl.classList.remove("is-good", "is-bad");
+      document.querySelector("#bad-label").textContent = "—";
+      document.querySelector("#samples").textContent = "—";
+    }
+
+    function summaryFromEvents(events) {
+      let good = 0;
+      const problems = {};
+      events.forEach((event) => {
+        if (event.label === "good") good += 1;
+        else problems[event.label] = (problems[event.label] || 0) + 1;
+      });
+      let problem = null;
+      let problemCount = 0;
+      Object.keys(problems).forEach((label) => {
+        if (problems[label] > problemCount) {
+          problem = label;
+          problemCount = problems[label];
+        }
+      });
+      const samples = events.length;
+      return {
+        percent_good: samples ? Math.round((1000 * good) / samples) / 10 : null,
+        most_common_bad_label: problem,
+        good_samples: good,
+        bad_samples: samples - good,
+      };
+    }
+
+    function lineChart(canvas, existing, labels, values, color, yTitle, yMax) {
+      const manyPoints = values.length > 80;
+      if (existing) {
+        existing.data.labels = labels;
+        existing.data.datasets[0].data = values;
+        existing.data.datasets[0].pointRadius = manyPoints ? 0 : 3;
+        existing.options.scales.y.max = yMax;
+        existing.update("none");
+        return existing;
+      }
+      return new Chart(canvas, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: yTitle,
+              data: values,
+              borderColor: color,
+              backgroundColor: color,
+              tension: 0.2,
+              pointRadius: manyPoints ? 0 : 3,
+              borderWidth: 2.5,
+              spanGaps: false,
+            },
+          ],
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: {
+            legend: {
+              position: "bottom",
+              labels: {
+                color: "#1a2420",
+                boxWidth: 28,
+                boxHeight: 3,
+                padding: 16,
+                font: { family: chartFont, size: 14, weight: "600" },
+              },
+            },
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: yMax,
+              title: {
+                display: true,
+                text: yTitle,
+                color: "#3f4a44",
+                font: { family: chartFont, size: 13, weight: "600" },
+              },
+              ticks: { color: "#3f4a44", precision: 0 },
+              grid: { color: "rgb(26 36 32 / 0.08)" },
+            },
+            x: {
+              ticks: { color: "#3f4a44", maxRotation: 0, autoSkip: true, maxTicksLimit: 6 },
+              grid: { display: false },
+            },
+          },
+        },
+      });
+    }
+
+    function renderBlinks(events) {
+      let latest = null;
+      for (let i = events.length - 1; i >= 0; i -= 1) {
+        const event = events[i];
+        if (event.blink_gap != null || event.blinks_per_minute != null) latest = event;
+        if (latest) break;
+      }
+      if (!latest) return;
+      if (latest.blink_gap != null) takeBoardGap(Number(latest.blink_gap), Date.now());
+      paintBlinkClock();
+      const gapEl = document.querySelector("#blink-gap");
+      const rateEl = document.querySelector("#blink-rate");
+      if (blinkGapNow(Date.now()) == null) {
+        if (gapEl && latest.blink_gap != null) gapEl.textContent = Number(latest.blink_gap).toFixed(1) + " s";
+        if (rateEl && latest.blinks_per_minute != null) rateEl.textContent = String(latest.blinks_per_minute);
+      }
+    }
+
+    function renderChart(events) {
+      if (typeof Chart === "undefined") return false;
+      renderBlinks(events);
+      if (!events.length) {
+        if (chart) {
+          chart.destroy();
+          chart = null;
+        }
+        if (blinkChart) {
+          blinkChart.destroy();
+          blinkChart = null;
+        }
+        setChartMode("empty");
+        return true;
+      }
+      const labels = events.map((event) => formatBucket(event.time, 1));
+      const scores = events.map((event) => event.posture);
+      const gaps = events.map((event) => {
+        const saved = event.blink_gap == null || Number.isNaN(Number(event.blink_gap)) ? null : Number(event.blink_gap);
+        const at = new Date(event.time).getTime();
+        return shownGapAt(saved, at);
+      });
+      const hasBlinks = gaps.some((gap) => gap != null);
+      setFrameMode(chartFrame, "ready");
+      chart = lineChart(chartCanvas, chart, labels, scores, "#1b1b1b", "Posture score", 100);
+      if (!hasBlinks) {
+        if (blinkChart) {
+          blinkChart.destroy();
+          blinkChart = null;
+        }
+        setFrameMode(blinkFrame, "empty");
+        return true;
+      }
+      const peak = Math.max(10, ...gaps.filter((gap) => gap != null));
+      const yMax = Math.ceil(peak);
+      setFrameMode(blinkFrame, "ready");
+      blinkChart = lineChart(blinkCanvas, blinkChart, labels, gaps, "#a33b24", "Seconds since blink", yMax);
+      return true;
+    }
+
+    let requestId = 0;
+    let pointsRequest = 0;
+    let boardRequest = 0;
+
+    function renderPoints(data) {
+      const status = document.querySelector("#points-status");
+      status.className = "";
+      status.textContent = "Last 7 days · Pacific time";
+      const level = data.level || {};
+      document.querySelector("#level-title").textContent = level.title || "—";
+      const into = Number(level.points_into_level) || 0;
+      const remaining = Number(level.points_to_next_level) || 0;
+      const span = into + remaining;
+      const pct = span > 0 ? Math.round((into / span) * 100) : 0;
+      document.querySelector("#level-meta").textContent =
+        "Level " + (level.level ?? "—") + " · " + (data.total_points ?? 0) + " points · " + remaining + " to next";
+      document.querySelector("#level-fill").style.width = pct + "%";
+      const track = document.querySelector("#level-track");
+      track.setAttribute("aria-valuenow", String(into));
+      track.setAttribute("aria-valuemax", String(span || 100));
+      track.setAttribute("aria-label", (level.title || "Level") + ", " + pct + " percent to the next level");
+      document.querySelector("#goal-stat").textContent =
+        (data.today_upright_minutes ?? 0) + " / " + (data.daily_goal_minutes ?? 60);
+      document.querySelector("#goal-meta").textContent = (data.points_today ?? 0) + " points today";
+      const minutes = data.flow_streak_minutes ?? 0;
+      const multiplier = data.flow_multiplier ?? 1;
+      const multLabel = Number.isInteger(multiplier) ? String(multiplier) : String(multiplier);
+      document.querySelector("#streak-stat").textContent = minutes + " min ×" + multLabel;
+      const days = data.day_streak ?? 0;
+      const dayLabel = days === 1 ? "1 day streak" : days + " day streak";
+      document.querySelector("#streak-meta").textContent =
+        dayLabel + " · best " + (data.best_streak_minutes ?? 0) + " min";
+    }
+
+    async function loadPoints(deviceId) {
+      const id = ++pointsRequest;
+      try {
+        const res = await fetch(apiBase + "/users/" + encodeURIComponent(deviceId) + "/points?hours=168");
+        if (id !== pointsRequest) return;
+        if (!res.ok) throw new Error("points " + res.status);
+        renderPoints(await res.json());
+      } catch (err) {
+        if (id !== pointsRequest) return;
+        const status = document.querySelector("#points-status");
+        status.className = "is-error";
+        status.textContent = "Points are unavailable right now.";
+      }
+    }
+
+    function renderBoard(data) {
+      const list = document.querySelector("#leaderboard");
+      const status = document.querySelector("#board-status");
+      list.replaceChildren();
+      const leaders = (data && data.leaders) || [];
+      if (!leaders.length) {
+        status.className = "";
+        status.textContent = "No points in the last 7 days yet.";
+        return;
+      }
+      leaders.forEach((leader) => {
+        const item = document.createElement("li");
+        const rank = document.createElement("span");
+        rank.className = "rank";
+        rank.textContent = String(leader.rank);
+        const name = document.createElement("span");
+        name.className = "name";
+        name.textContent = leader.display_name;
+        const pts = document.createElement("span");
+        pts.className = "pts";
+        pts.textContent = String(leader.points) + " pts";
+        item.append(rank, name, pts);
+        list.appendChild(item);
+      });
+      status.className = "";
+      status.textContent = "";
+    }
+
+    async function loadBoard() {
+      const id = ++boardRequest;
+      try {
+        const res = await fetch(apiBase + "/leaderboard?hours=168&limit=8");
+        if (id !== boardRequest) return;
+        if (!res.ok) throw new Error("leaderboard " + res.status);
+        renderBoard(await res.json());
+      } catch (err) {
+        if (id !== boardRequest) return;
+        const status = document.querySelector("#board-status");
+        status.className = "is-error";
+        status.textContent = "Leaderboard is unavailable right now.";
+      }
+    }
+
+    async function load(options) {
+      const quiet = Boolean(options && options.quiet);
+      const id = ++requestId;
+      const deviceId = deviceSelect.value;
+      if (!quiet || requestId % 15 === 1) {
+        loadPoints(deviceId);
+        loadBoard();
+      }
+      if (!quiet) {
+        clearSummary();
+        setChartMode("loading");
+        statusEl.className = "";
+        statusEl.textContent = "Loading posture for this device id…";
+      }
+      try {
+        const liveRes = await fetch(apiBase + "/users/" + encodeURIComponent(deviceId) + "/live");
+        if (id !== requestId) return;
+        if (!liveRes.ok) throw new Error("API returned " + liveRes.status);
+        const live = await liveRes.json();
+        const events = Array.isArray(live.events) ? live.events : [];
+        renderSummary(summaryFromEvents(events));
+        const last = events.length ? events[events.length - 1] : null;
+        postureNeedsSit = Boolean(
+          last && ((last.posture != null && last.posture <= 60) || last.label === "slouching" || last.label === "leaning_forward"),
+        );
+        renderBlinks(events);
+        if (!blinkWatch.marks.length && !blinkWatch.holding) {
+          const notes = [];
+          if (last && last.blink_gap != null && Number(last.blink_gap) >= 5) notes.push("Blink");
+          if (postureNeedsSit) notes.push("Sit up taller");
+          if (last) showReminder(notes);
+        }
+        const chartOk = renderChart(events);
+        if (!chartOk) {
+          setChartMode("empty");
+          statusEl.className = "is-error";
+          statusEl.textContent = "Chart library failed to load. Summary stats are still shown.";
+          return;
+        }
+        statusEl.className = "";
+        statusEl.textContent = events.length
+          ? events.length + " scores in the last 10 minutes for " + deviceId + "."
+          : "No scores for " + deviceId + " in the last 10 minutes.";
+      } catch (err) {
+        if (id !== requestId) return;
+        setChartMode("empty");
+        statusEl.className = "is-error";
+        statusEl.textContent = "Could not load posture for this device id. " + err.message;
+      }
+    }
+
+    deviceSelect.addEventListener("change", () => load());
+    document.querySelector("#refresh").addEventListener("click", () => load());
+
+    const footageButton = document.querySelector("#footage");
+    const footageError = document.querySelector("#footage-error");
+    const FRAME_W = 96;
+    const FRAME_H = 72;
+    let footagePort = null;
+    let footageWriter = null;
+    let footageReader = null;
+    let footageStream = null;
+    let footageStop = false;
+    let footageCollecting = false;
+    let footageChosen = null;
+    let okWaiter = null;
+    let failWaiter = null;
+    let boardReady = false;
+    let lastPacket = null;
+    let resentWhileWaiting = false;
+    let lastLine = "";
+    let idleLatched = false;
+    let sheetCount = 0;
+    let countSheetOk = true;
+    let sawBytes = false;
+    let reopenStarted = false;
+
+    function crc16(bytes) {
+      let crc = 0xffff;
+      for (const byte of bytes) {
+        crc ^= byte << 8;
+        for (let bit = 0; bit < 8; bit += 1) {
+          crc = (crc & 0x8000) !== 0 ? ((crc << 1) ^ 0x1021) & 0xffff : (crc << 1) & 0xffff;
+        }
+      }
+      return crc;
+    }
+
+    function encodeFrame(timestampMs, gray) {
+      const payloadLen = 4 + gray.length;
+      const packet = new Uint8Array(2 + 6 + payloadLen + 2);
+      packet[0] = 0xa5;
+      packet[1] = 0x5a;
+      packet[2] = 1;
+      packet[4] = payloadLen & 0xff;
+      packet[5] = (payloadLen >>> 8) & 0xff;
+      packet[6] = (payloadLen >>> 16) & 0xff;
+      packet[7] = (payloadLen >>> 24) & 0xff;
+      const timestamp = timestampMs >>> 0;
+      packet[8] = timestamp & 0xff;
+      packet[9] = (timestamp >>> 8) & 0xff;
+      packet[10] = (timestamp >>> 16) & 0xff;
+      packet[11] = (timestamp >>> 24) & 0xff;
+      packet.set(gray, 12);
+      const crc = crc16(packet.subarray(2, 12 + gray.length));
+      packet[12 + gray.length] = crc & 0xff;
+      packet[12 + gray.length + 1] = (crc >>> 8) & 0xff;
+      return packet;
+    }
+
+    function setFootage(collecting, error) {
+      footageCollecting = collecting;
+      footageButton.textContent = collecting ? "Stop camera" : "Start camera";
+      footageButton.setAttribute("aria-pressed", collecting ? "true" : "false");
+      footageButton.disabled = false;
+      footageError.hidden = !error;
+      footageError.textContent = error || "";
+    }
+
+    const BLINK_SHUT = 0.5;
+    const BLINK_HARD_SHUT = 0.75;
+    const BLINK_REFRACTORY_MS = 400;
+    const VISION_MODULE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/+esm";
+    const WASM_BASE = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.1.1/wasm";
+    const MODEL_URL = "https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task";
+    let blinkWatch = { track: { armed: true, shutFrames: 0, lastFireAt: null }, holding: false, frozenGap: null, marks: [] };
+    let previousBoardGap = null;
+    let postureNeedsSit = false;
+    let faceBlink = null;
+    let faceBlinkLoad = null;
+    let faceBlinkFailedAt = 0;
+    let blinkTimer = 0;
+    let clockTimer = 0;
+    let serialChain = Promise.resolve();
+    let boardCmdSending = false;
+    let stareChirpIndex = 0;
+    let postureBadSince = null;
+    let lastHonkAskAt = 0;
+    const boardCmds = [];
+
+    function trackBlink(track, score, now) {
+      if (score < BLINK_SHUT) return { track: { armed: true, shutFrames: 0, lastFireAt: track.lastFireAt }, blinked: false };
+      const shutFrames = track.shutFrames + 1;
+      const cooled = track.lastFireAt === null || now - track.lastFireAt >= BLINK_REFRACTORY_MS;
+      const confirmed = score >= BLINK_HARD_SHUT || shutFrames >= 2;
+      if (track.armed && cooled && confirmed) {
+        return { track: { armed: false, shutFrames: shutFrames, lastFireAt: now }, blinked: true };
+      }
+      return { track: { armed: track.armed, shutFrames: shutFrames, lastFireAt: track.lastFireAt }, blinked: false };
+    }
+
+    function blinkGapNow(now) {
+      if (blinkWatch.holding && blinkWatch.frozenGap != null) return blinkWatch.frozenGap;
+      if (!blinkWatch.marks.length) return null;
+      return Math.max(0, (now - blinkWatch.marks[blinkWatch.marks.length - 1]) / 1000);
+    }
+
+    function blinkRateNow(now) {
+      let count = 0;
+      for (let i = 0; i < blinkWatch.marks.length; i += 1) {
+        if (now - blinkWatch.marks[i] <= 60000) count += 1;
+      }
+      return count;
+    }
+
+    function paintBlinkClock() {
+      const now = Date.now();
+      const gap = blinkGapNow(now);
+      if (gap == null) {
+        remindPosture(now);
+        return;
+      }
+      const gapEl = document.querySelector("#blink-gap");
+      const rateEl = document.querySelector("#blink-rate");
+      if (gapEl) gapEl.textContent = gap.toFixed(1) + " s";
+      if (rateEl) rateEl.textContent = String(blinkRateNow(now));
+      const notes = [];
+      if (!blinkWatch.holding && gap >= 5) notes.push("Blink");
+      if (postureNeedsSit) notes.push("Sit up taller");
+      showReminder(notes);
+      if (blinkWatch.holding) {
+        /* A held close is not a stare. */
+      } else if (gap < 5) {
+        stareChirpIndex = 0;
+      } else if (footageCollecting) {
+        const index = Math.floor(gap / 5);
+        if (index > stareChirpIndex) {
+          stareChirpIndex = index;
+          queueBoardCmd("chirp\n");
+        }
+      }
+      remindPosture(now);
+    }
+
+    function remindPosture(now) {
+      if (!postureNeedsSit) {
+        postureBadSince = null;
+        return;
+      }
+      if (!footageCollecting) return;
+      if (postureBadSince == null) postureBadSince = now;
+      if (now - postureBadSince < 15000) return;
+      if (now - lastHonkAskAt < 5000) return;
+      lastHonkAskAt = now;
+      queueBoardCmd("honk\n");
+    }
+
+    function takeBoardGap(gapSeconds, now) {
+      if (!Number.isFinite(gapSeconds) || gapSeconds < 0) return;
+      const dropped = previousBoardGap == null || gapSeconds + 0.4 < previousBoardGap;
+      const implied = now - gapSeconds * 1000;
+      const last = blinkWatch.marks.length ? blinkWatch.marks[blinkWatch.marks.length - 1] : null;
+      const newer = last == null || implied > last + 250;
+      previousBoardGap = gapSeconds;
+      if (!dropped || !newer || blinkWatch.holding) return;
+      blinkWatch.marks.push(implied);
+      if (blinkWatch.marks.length > 180) blinkWatch.marks = blinkWatch.marks.slice(-180);
+    }
+
+    function shownGapAt(saved, at) {
+      const board = saved == null || Number.isNaN(Number(saved)) ? null : Number(saved);
+      let last = null;
+      for (let i = 0; i < blinkWatch.marks.length; i += 1) {
+        if (blinkWatch.marks[i] <= at) last = blinkWatch.marks[i];
+      }
+      if (last == null) return board;
+      const local = Math.max(0, (at - last) / 1000);
+      if (board == null) return local;
+      return Math.min(board, local);
+    }
+
+    function watchSample(score, faceVisible, now) {
+      if (!faceVisible) return false;
+      const step = trackBlink(blinkWatch.track, score, now);
+      blinkWatch.track = step.track;
+      if (step.blinked) {
+        blinkWatch.frozenGap = blinkWatch.marks.length
+          ? Math.max(0, (now - blinkWatch.marks[blinkWatch.marks.length - 1]) / 1000)
+          : 0;
+        blinkWatch.holding = true;
+        return false;
+      }
+      if (blinkWatch.holding && score < BLINK_SHUT) {
+        blinkWatch.holding = false;
+        blinkWatch.frozenGap = null;
+        blinkWatch.marks.push(now);
+        if (blinkWatch.marks.length > 180) blinkWatch.marks = blinkWatch.marks.slice(-180);
+        return true;
+      }
+      return false;
+    }
+
+    function closureScore(result) {
+      const blend = result.faceBlendshapes && result.faceBlendshapes[0];
+      const categories = blend && blend.categories;
+      if (!result.faceLandmarks || !result.faceLandmarks.length || !categories || !categories.length) {
+        return { score: 0, faceVisible: false };
+      }
+      function scoreOf(name) {
+        for (let i = 0; i < categories.length; i += 1) {
+          if (categories[i].categoryName === name) return categories[i].score || 0;
+        }
+        return 0;
+      }
+      return { score: (scoreOf("eyeBlinkLeft") + scoreOf("eyeBlinkRight")) / 2, faceVisible: true };
+    }
+
+    async function createLandmarker(vision, delegate) {
+      const fileset = await vision.FilesetResolver.forVisionTasks(WASM_BASE);
+      return vision.FaceLandmarker.createFromOptions(fileset, {
+        baseOptions: { modelAssetPath: MODEL_URL, delegate: delegate },
+        runningMode: "VIDEO",
+        numFaces: 1,
+        outputFaceBlendshapes: true,
+        minFaceDetectionConfidence: 0.4,
+        minFacePresenceConfidence: 0.4,
+        minTrackingConfidence: 0.4,
+      });
+    }
+
+    function loadFaceBlink() {
+      if (faceBlink || faceBlinkLoad) return faceBlinkLoad || Promise.resolve(faceBlink);
+      faceBlinkLoad = (async () => {
+        const vision = await import(VISION_MODULE);
+        let landmarker;
+        try {
+          landmarker = await createLandmarker(vision, "GPU");
+        } catch (err) {
+          landmarker = await createLandmarker(vision, "CPU");
+        }
+        let lastTimestamp = -1;
+        faceBlink = {
+          sample(video, nowMs) {
+            const timestamp = Math.max(lastTimestamp + 1, Math.round(nowMs));
+            lastTimestamp = timestamp;
+            return closureScore(landmarker.detectForVideo(video, timestamp));
+          },
+        };
+        return faceBlink;
+      })().catch((err) => {
+        faceBlinkLoad = null;
+        faceBlinkFailedAt = Date.now();
+        throw err;
+      });
+      return faceBlinkLoad;
+    }
+
+    function resetBlinkWatch() {
+      blinkWatch = { track: { armed: true, shutFrames: 0, lastFireAt: null }, holding: false, frozenGap: null, marks: [] };
+      previousBoardGap = null;
+      stareChirpIndex = 0;
+      postureBadSince = null;
+      lastHonkAskAt = 0;
+      boardCmds.length = 0;
+    }
+
+    function stopBlinkWatch() {
+      window.clearInterval(blinkTimer);
+      window.clearInterval(clockTimer);
+      blinkTimer = 0;
+      clockTimer = 0;
+      resetBlinkWatch();
+    }
+
+    function startBlinkWatch(video) {
+      stopBlinkWatch();
+      loadFaceBlink().catch(() => {});
+      blinkTimer = window.setInterval(() => {
+        if (footageStop) return;
+        if (!faceBlink) {
+          if (!faceBlinkLoad && Date.now() - faceBlinkFailedAt > 3000) loadFaceBlink().catch(() => {});
+          return;
+        }
+        if (video.readyState < 2) return;
+        let sample;
+        try {
+          sample = faceBlink.sample(video, performance.now());
+        } catch (err) {
+          return;
+        }
+        const wasHolding = blinkWatch.holding;
+        if (watchSample(sample.score, sample.faceVisible, Date.now())) {
+          paintBlinkClock();
+          queueBoardBlink();
+        } else if (blinkWatch.holding !== wasHolding) {
+          paintBlinkClock();
+        }
+      }, 50);
+      clockTimer = window.setInterval(paintBlinkClock, 250);
+    }
+
+    function writeExclusive(work) {
+      let release = function () {};
+      const gate = new Promise((resolve) => {
+        release = resolve;
+      });
+      const previous = serialChain;
+      serialChain = gate;
+      return previous.then(async () => {
+        try {
+          await work();
+        } finally {
+          release();
+        }
+      });
+    }
+
+    function flushBoardCmds() {
+      if (boardCmdSending || !boardCmds.length || !footageWriter) return;
+      const line = boardCmds.shift();
+      boardCmdSending = true;
+      writeExclusive(() => footageWriter.write(new TextEncoder().encode(line)))
+        .catch(() => {
+          boardCmds.unshift(line);
+        })
+        .finally(() => {
+          boardCmdSending = false;
+          if (boardCmds.length) flushBoardCmds();
+        });
+    }
+
+    function queueBoardCmd(line) {
+      boardCmds.push(line);
+      flushBoardCmds();
+    }
+
+    function queueBoardBlink() {
+      queueBoardCmd("blink\n");
+    }
+
+    function noteDevice(id) {
+      const clean = String(id || "").trim();
+      if (!/^[A-Za-z0-9_-]{1,80}$/.test(clean)) return;
+      let option = [...deviceSelect.options].find((item) => item.value === clean);
+      if (!option) {
+        option = document.createElement("option");
+        option.value = clean;
+        option.textContent = clean;
+        deviceSelect.appendChild(option);
+      }
+      if (deviceSelect.value !== clean) {
+        deviceSelect.value = clean;
+        load();
+      }
+    }
+
+    function handleBoardLine(line) {
+      const text = line.trim();
+      if (/^[EWID] \(\d+\) /.test(text)) return;
+      if (text) lastLine = text;
+      if (text === "idle") idleLatched = true;
+      if (text === "ready" || text === "idle" || text === "ok" || text.startsWith("device ")) boardReady = true;
+      if (text === "ready" && okWaiter && lastPacket && footageWriter && !resentWhileWaiting) {
+        resentWhileWaiting = true;
+        writeExclusive(async () => {
+          if (lastPacket) await footageWriter.write(lastPacket);
+        }).catch(() => {});
+      }
+      if (text === "ok" && okWaiter) okWaiter();
+      else if (text.startsWith("device ")) noteDevice(text.slice(7));
+      else if (text.startsWith("error ")) {
+        const detail = text.slice(6).trim();
+        if (detail === "bad frame" || detail === "partial") countSheetOk = false;
+        setFootage(footageCollecting, boardError(detail));
+      }
+      else if (text.startsWith("score ")) {
+        const gap = text.match(/(?:^|\s)gap=([^\s]+)/);
+        const rate = text.match(/(?:^|\s)rate=([^\s]+)/);
+        const posture = text.match(/(?:^|\s)posture=([^\s]+)/);
+        const head = text.match(/(?:^|\s)head=([^\s]+)/);
+        postureNeedsSit = Boolean((posture && Number(posture[1]) <= 60) || (head && head[1] === "forward"));
+        if (gap) takeBoardGap(Number(gap[1]), Date.now());
+        if (blinkGapNow(Date.now()) == null) {
+          const gapEl = document.querySelector("#blink-gap");
+          const rateEl = document.querySelector("#blink-rate");
+          if (gapEl) gapEl.textContent = gap ? gap[1] + " s" : "—";
+          if (rateEl) rateEl.textContent = rate ? rate[1] : "—";
+          const notes = [];
+          if (gap && Number(gap[1]) >= 5) notes.push("Blink");
+          if (postureNeedsSit) notes.push("Sit up taller");
+          showReminder(notes);
+        } else {
+          paintBlinkClock();
+        }
+      }
+    }
+
+    async function reopenBoard() {
+      if (reopenStarted || footageStop || boardReady || !footagePort) return;
+      reopenStarted = true;
+      try {
+        try { if (footageReader) await footageReader.cancel(); } catch (err) {}
+        try { if (footageWriter) footageWriter.releaseLock(); } catch (err) {}
+        try { if (footageReader) footageReader.releaseLock(); } catch (err) {}
+        footageReader = null;
+        footageWriter = null;
+        try { await footagePort.close(); } catch (err) {}
+        await new Promise((resolve) => window.setTimeout(resolve, 800));
+        if (footageStop) return;
+        await footagePort.open({ baudRate: 921600 });
+        footageWriter = footagePort.writable.getWriter();
+        footageReader = footagePort.readable.getReader();
+        readBoard();
+      } catch (err) {
+        /* The wait loop reports the silence. */
+      }
+    }
+
+    async function readBoard() {
+      const decoder = new TextDecoder();
+      let buffer = "";
+      try {
+        while (footageReader) {
+          const { value, done } = await footageReader.read();
+          if (done) break;
+          if (value && value.length) sawBytes = true;
+          buffer += decoder.decode(value || new Uint8Array(), { stream: true });
+          let newline = buffer.indexOf("\n");
+          while (newline >= 0) {
+            handleBoardLine(buffer.slice(0, newline));
+            buffer = buffer.slice(newline + 1);
+            newline = buffer.indexOf("\n");
+          }
+        }
+      } catch (err) {
+        /* Opening the port can reboot the board and drop this stream. */
+      }
+      if (!footageStop && !boardReady) reopenBoard();
+    }
+
+    function cameraCrop(videoWidth, videoHeight) {
+      if (videoWidth < 2 || videoHeight < 2) return null;
+      const aspect = FRAME_W / FRAME_H;
+      let sw;
+      let sh;
+      let sx;
+      let sy;
+      if (videoWidth / videoHeight > aspect) {
+        sh = videoHeight;
+        sw = sh * aspect;
+        sx = (videoWidth - sw) / 2;
+        sy = 0;
+      } else {
+        sw = videoWidth;
+        sh = sw / aspect;
+        sx = 0;
+        sy = (videoHeight - sh) * 0.32;
+      }
+      const zoom = 0.82;
+      const cw = sw * zoom;
+      const ch = sh * zoom;
+      sx += (sw - cw) / 2;
+      sy += (sh - ch) * 0.2;
+      return { sx: Math.max(0, sx), sy: Math.max(0, sy), sw: cw, sh: ch };
+    }
+
+    function eyeEnergy(gray) {
+      let sum = 0;
+      const y0 = Math.floor(FRAME_H * 0.28);
+      const y1 = Math.floor(FRAME_H * 0.52);
+      const x0 = Math.floor(FRAME_W * 0.22);
+      const x1 = Math.floor(FRAME_W * 0.78);
+      for (let y = y0; y < y1; y += 1) {
+        const row = y * FRAME_W;
+        for (let x = x0; x < x1; x += 1) sum += gray[row + x];
+      }
+      return sum;
+    }
+
+    function pickSheetFrames(ring) {
+      if (ring.length <= 2) return ring.slice();
+      let darkest = 0;
+      let dark = eyeEnergy(ring[0].gray);
+      for (let i = 1; i < ring.length; i += 1) {
+        const energy = eyeEnergy(ring[i].gray);
+        if (energy < dark) {
+          dark = energy;
+          darkest = i;
+        }
+      }
+      const last = ring.length - 1;
+      const earlier = darkest === last ? Math.max(0, last - 1) : Math.min(darkest, last);
+      const later = darkest === last ? last : Math.max(darkest, last);
+      return [ring[earlier], ring[later]];
+    }
+
+    function showReminder(notes) {
+      const el = document.querySelector("#reminder");
+      if (!el) return;
+      if (!notes.length) {
+        el.textContent = "Good";
+        el.className = "reminder is-good";
+        return;
+      }
+      el.textContent = notes.join(" · ");
+      el.className = "reminder is-bad";
+    }
+
+    function grabGray(video, canvas) {
+      if (video.readyState < 2) return null;
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return null;
+      const crop = cameraCrop(video.videoWidth, video.videoHeight);
+      if (!crop) return null;
+      context.drawImage(video, crop.sx, crop.sy, crop.sw, crop.sh, 0, 0, FRAME_W, FRAME_H);
+      const pixels = context.getImageData(0, 0, FRAME_W, FRAME_H).data;
+      const gray = new Uint8Array(FRAME_W * FRAME_H);
+      for (let i = 0, p = 0; i < pixels.length; i += 4, p += 1) {
+        const value = 0.3 * pixels[i] + 0.6 * pixels[i + 1] + 0.1 * pixels[i + 2];
+        gray[p] = value < 0 ? 0 : value > 255 ? 255 : Math.round(value);
+      }
+      return gray;
+    }
+
+    function waitForOk() {
+      return new Promise((resolve, reject) => {
+        const timer = window.setTimeout(() => {
+          okWaiter = null;
+          failWaiter = null;
+          const why = lastLine ? " Last line: " + lastLine + "." : " The board sent no line back.";
+          reject(new Error("The ESP32 did not answer." + why));
+        }, 40000);
+        resentWhileWaiting = false;
+        okWaiter = () => {
+          window.clearTimeout(timer);
+          okWaiter = null;
+          failWaiter = null;
+          resolve();
+        };
+        failWaiter = () => {
+          window.clearTimeout(timer);
+          okWaiter = null;
+          failWaiter = null;
+          reject(new Error("stopped"));
+        };
+      });
+    }
+
+    async function stopFootage() {
+      footageStop = true;
+      if (failWaiter) failWaiter();
+      if (footageStream) footageStream.getTracks().forEach((track) => track.stop());
+      footageStream = null;
+      const video = document.querySelector("#perch-footage");
+      if (video) video.srcObject = null;
+      try { if (footageWriter) await footageWriter.close(); } catch (err) {}
+      try { if (footageReader) await footageReader.cancel(); } catch (err) {}
+      try { if (footagePort) await footagePort.close(); } catch (err) {}
+      footageWriter = null;
+      footageReader = null;
+      footagePort = null;
+      stopBlinkWatch();
+      setFootage(false, "");
+    }
+
+    async function startFootage() {
+      if (!navigator.serial) {
+        setFootage(false, "Chrome or Edge is required.");
+        return;
+      }
+      const portPromise = footageChosen ? Promise.resolve(footageChosen) : navigator.serial.requestPort();
+      const mediaPromise = navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      });
+      footageButton.disabled = true;
+      footageButton.textContent = "Starting camera…";
+      footageStop = false;
+      boardReady = false;
+      try {
+        const media = await mediaPromise;
+        footageStream = media;
+        let video = document.querySelector("#perch-footage");
+        if (!video) {
+          video = document.createElement("video");
+          video.id = "perch-footage";
+          video.muted = true;
+          video.playsInline = true;
+          video.setAttribute("aria-hidden", "true");
+          video.style.cssText = "position:fixed;width:1px;height:1px;opacity:0;pointer-events:none";
+          document.body.appendChild(video);
+        }
+        video.srcObject = media;
+        await video.play();
+        startBlinkWatch(video);
+        footagePort = await portPromise;
+        footageChosen = footagePort;
+        await footagePort.open({ baudRate: 921600 });
+        footageWriter = footagePort.writable.getWriter();
+        footageReader = footagePort.readable.getReader();
+        readBoard();
+        const canvas = document.createElement("canvas");
+        canvas.width = FRAME_W;
+        canvas.height = FRAME_H;
+        setFootage(true, "");
+        flushBoardCmds();
+        const bootStart = performance.now();
+        while (!boardReady) {
+          if (footageStop) return;
+          if (performance.now() - bootStart > 20000) {
+            const heard = sawBytes ? "The port sent bytes, but not a board line." : "The ESP32 sent nothing.";
+            throw new Error(heard + " Close the Arduino Serial Monitor, unplug the board, plug it back in, and choose the port that appears.");
+          }
+          await new Promise((resolve) => window.setTimeout(resolve, 50));
+        }
+        const ring = [];
+        let lastSample = 0;
+        function rememberFrame() {
+          const now = performance.now();
+          if (now - lastSample < 120) return;
+          lastSample = now;
+          const gray = grabGray(video, canvas);
+          if (!gray) return;
+          ring.push({ t: Date.now(), gray: gray });
+          if (ring.length > 48) ring.shift();
+        }
+        async function sendChosen(frame) {
+          idleLatched = false;
+          const packet = encodeFrame(frame.t, frame.gray);
+          lastPacket = packet;
+          const pending = waitForOk();
+          await writeExclusive(async () => {
+            for (let offset = 0; offset < packet.length; offset += 512) {
+              await footageWriter.write(packet.subarray(offset, Math.min(packet.length, offset + 512)));
+            }
+          });
+          await pending;
+          if (countSheetOk) sheetCount += 1;
+          else countSheetOk = true;
+          if (sheetCount < 2) return;
+          sheetCount = 0;
+          const scoringStarted = performance.now();
+          while (!idleLatched) {
+            if (footageStop) return;
+            flushBoardCmds();
+            rememberFrame();
+            if (performance.now() - scoringStarted > 45000) {
+              throw new Error("The ESP32 did not answer. It started a score and never finished. Last line: " + (lastLine || "none") + ".");
+            }
+            await new Promise((resolve) => window.setTimeout(resolve, 40));
+          }
+          idleLatched = false;
+        }
+        while (!footageStop) {
+          rememberFrame();
+          const span = ring.length >= 2 ? ring[ring.length - 1].t - ring[0].t : 0;
+          if (ring.length < 2 || span < 400) {
+            await new Promise((resolve) => window.setTimeout(resolve, 40));
+            continue;
+          }
+          const chosen = pickSheetFrames(ring);
+          ring.length = 0;
+          for (let i = 0; i < chosen.length; i += 1) await sendChosen(chosen[i]);
+        }
+      } catch (err) {
+        footageChosen = null;
+        const stopped = footageStop;
+        const message = err && err.message ? err.message : "Could not start footage.";
+        const cancelled = /cancel/i.test(message) || message.indexOf("No port selected") >= 0;
+        await stopFootage();
+        if (!stopped) setFootage(false, cancelled ? "" : message);
+      }
+    }
+
+    footageButton.addEventListener("click", () => {
+      if (footageCollecting) stopFootage();
+      else startFootage();
+    });
+    window.setInterval(() => load({ quiet: true }), 1000);
+    load();
+  </script>
+</body>
+</html>
